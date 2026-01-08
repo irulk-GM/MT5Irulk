@@ -1,0 +1,45 @@
+name: MT5_VPS_Runner
+
+on:
+  workflow_dispatch: # Menjalankan manual dari menu Actions
+  schedule:
+    - cron: "0 */6 * * *" # Restart otomatis setiap 6 jam agar tidak mati (GitHub Limit)
+
+jobs:
+  build:
+    runs-on: windows-latest # Menggunakan Windows Server karena MT5 butuh Windows
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Download & Install MetaTrader 5
+      run: |
+        # Download installer resmi MT5
+        curl -L https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe -o mt5setup.exe
+        # Install secara silent/background
+        start /wait mt5setup.exe /silent
+        
+    - name: Prepare EA & Configuration
+      run: |
+        # Membuat folder tujuan jika belum ada (sesuaikan path-nya)
+        $mt5Path = "C:\Program Files\MetaTrader 5\MQL5\Experts"
+        if (!(Test-Path $mt5Path)) { New-Item -ItemType Directory -Force -Path $mt5Path }
+        
+        # Menyalin file EA dari repo ke folder MT5 (Pastikan nama file sesuai)
+        # Ganti 'EA_Anda.mq5' dengan nama file di repo Anda
+        if (Test-Path "Engulfing_EA.mq5") { Copy-Item "Engulfing_EA.mq5" -Destination $mt5Path }
+
+    - name: Running MetaTrader 5
+      run: |
+        # Menjalankan MT5. 
+        # Note: GitHub Runner tidak memiliki layar (headless), 
+        # jadi kita menjalankan terminal tanpa GUI jika memungkinkan atau lewat command line.
+        cd "C:\Program Files\MetaTrader 5\"
+        
+        # Script ini akan menahan workflow agar tetap running selama 5 jam 50 menit
+        # sebelum akhirnya dihentikan oleh GitHub atau cron restart.
+        start terminal64.exe /portable
+        
+        Write-Host "MT5 sedang berjalan..."
+        Start-Sleep -Seconds 21000 # Berjalan selama ~5.8 jam
